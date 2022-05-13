@@ -8,4 +8,13 @@
     <Compile Include="Library.fs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="anglesharp" Version="0.16.1" />
+    <PackageReference Include="anglesharp.css" Version="0.16.4" />
+    <PackageReference Include="anglesharp.js" Version="0.15.0" />
+    <PackageReference Include="AngleSharp.Io" Version="0.16.0">
+      <GeneratePathProperty></GeneratePathProperty>
+    </PackageReference>
+  </ItemGroup>
+
 </Project>
