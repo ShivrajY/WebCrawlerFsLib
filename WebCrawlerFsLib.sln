@@ -5,6 +5,8 @@ VisualStudioVersion = 25.0.1700.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "WebCrawlerFsLib", "WebCrawlerFsLib\WebCrawlerFsLib.fsproj", "{B6026DA8-3B17-45D2-9291-5B9083E09D33}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ConsoleTester", "ConsoleTester\ConsoleTester.fsproj", "{5561AAA6-ED49-40FE-B4B3-08848DBEC75B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{B6026DA8-3B17-45D2-9291-5B9083E09D33}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B6026DA8-3B17-45D2-9291-5B9083E09D33}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B6026DA8-3B17-45D2-9291-5B9083E09D33}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5561AAA6-ED49-40FE-B4B3-08848DBEC75B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5561AAA6-ED49-40FE-B4B3-08848DBEC75B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5561AAA6-ED49-40FE-B4B3-08848DBEC75B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5561AAA6-ED49-40FE-B4B3-08848DBEC75B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
