@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 25.0.1700.0
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32421.90
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "WebCrawlerFsLib", "WebCrawlerFsLib\WebCrawlerFsLib.fsproj", "{B6026DA8-3B17-45D2-9291-5B9083E09D33}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "WebCrawlerFsLib", "WebCrawlerFsLib\WebCrawlerFsLib.fsproj", "{B6026DA8-3B17-45D2-9291-5B9083E09D33}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ConsoleTester", "ConsoleTester\ConsoleTester.fsproj", "{5561AAA6-ED49-40FE-B4B3-08848DBEC75B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebCrawler", "WebCrawler\WebCrawler.csproj", "{048A4CAD-C665-496D-8B15-0B47C89D6B2F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{5561AAA6-ED49-40FE-B4B3-08848DBEC75B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5561AAA6-ED49-40FE-B4B3-08848DBEC75B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5561AAA6-ED49-40FE-B4B3-08848DBEC75B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{048A4CAD-C665-496D-8B15-0B47C89D6B2F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{048A4CAD-C665-496D-8B15-0B47C89D6B2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{048A4CAD-C665-496D-8B15-0B47C89D6B2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{048A4CAD-C665-496D-8B15-0B47C89D6B2F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
