@@ -15,6 +15,7 @@ open AngleSharp.Js
 open AngleSharp.Io.Network
 open AngleSharp.Html.Parser
 
+
 let LIMIT = 100
 
 type RequestGate(n:int) =
@@ -31,101 +32,194 @@ type RequestGate(n:int) =
                     return! failwith "Couldn't aquire semaphore"    
         }
 
-let webRequestGate = RequestGate(10)
+type FileMessage =
+     | Save of data:(bool*string*string)
+     | Quit
+ 
+type FileSaverAgent(totalLinksFile:string, goodLinksFile:string, badLinksFile:string) =
+    let totalLinksFileSW = File.AppendText(totalLinksFile)
+    let goodLinksFileSW = File.AppendText(goodLinksFile)
+    let badLinksFileSW = File.AppendText(badLinksFile)
+    let agent =
+            MailboxProcessor.Start(
+                fun (inbox: MailboxProcessor<FileMessage>) -> 
+                    let rec loop() =
+                        async {
+                                 let! message = inbox.Receive()                   
+                                 match message with
+                                 | Quit -> return()
+                                 | Save (b,parent, url) -> 
+                                        let line = sprintf "\"%s\",\"%s\"" parent url
+                                        do! totalLinksFileSW.WriteLineAsync(line)|>Async.AwaitTask
+                                        match b with
+                                        | true -> do! goodLinksFileSW.WriteLineAsync(line)|>Async.AwaitTask
+                                        | false -> do! badLinksFileSW.WriteLineAsync(line)|>Async.AwaitTask
+                                 return! loop() 
+                        }
+                    loop()
+                )
+    do 
+       totalLinksFileSW.AutoFlush <- true
+       goodLinksFileSW.AutoFlush <- true
+       badLinksFileSW.AutoFlush <- true 
+       
+    interface System.IDisposable with
+      member x.Dispose() = 
+            totalLinksFileSW.Dispose()
+            goodLinksFileSW.Dispose()
+            badLinksFileSW.Dispose()
+            agent.Post(FileMessage.Quit)
+   
+    member _.SaveToFiles(data: (bool * string * string)) = agent.Post(Save(data))
 
 ServicePointManager.ServerCertificateValidationCallback <- (fun _ _ _ _ -> true)
 ServicePointManager.DefaultConnectionLimit <- LIMIT
 ServicePointManager.SecurityProtocol <- SecurityProtocolType.Tls12 ||| SecurityProtocolType.Tls11 ||| SecurityProtocolType.Tls
 
+type WebCrawler(url:Uri,allLinksFile:string, goodFile:string, badFile:string, cancellationToken:CancellationToken, log:string->unit) =
+        let baseUrl = $"{url.Scheme}://{url.Authority}"
 
-let handler = new HttpClientHandler();
-handler.AllowAutoRedirect <- true
-handler.AutomaticDecompression<- DecompressionMethods.GZip ||| DecompressionMethods.Deflate
-handler.ClientCertificateOptions <- ClientCertificateOption.Automatic
+        let linksDictionary = new ConcurrentDictionary<string,string>()             
+        let blockingCollection = new BlockingCollection<string*string>()
 
-let httpClient = new HttpClient(handler)
-httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/W.X.Y.Z Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")
- 
-let config = Configuration.Default
-                //.With(new HttpClientRequester(httpClient))
-                .WithDefaultLoader()
-                //.WithDefaultCookies()
-                .WithCss()
-                .WithJs()
+        let fileSaverAgent = new FileSaverAgent(allLinksFile, goodFile, badFile)
 
-let linksDictionary = new ConcurrentDictionary<string,string>()             
-let blockingCollection = new BlockingCollection<string*string>()
+        //let webRequestGate = RequestGate(5)
 
-let mutable BaseUrl = "" 
+        let handler = new HttpClientHandler();
+        let httpClient = new HttpClient(handler)
 
-let setBaseUrl baseUrl = BaseUrl <- baseUrl
-                         httpClient.BaseAddress <- Uri(baseUrl)
+        let config = Configuration.Default
+                                //.With(new HttpClientRequester(httpClient))
+                                .WithDefaultLoader()
+                                //.WithDefaultCookies()
+                                .WithCss()
+                                .WithJs()
 
-let log msg = printfn "%A" msg
-let saveToFiles (data:(bool * string * string)) = 
-    log "Saving file..."
-    log data
-let linksProducer (parentUrl:string, url:string) =
-    async{
+        do
+            handler.AllowAutoRedirect <- true
+            handler.AutomaticDecompression<- DecompressionMethods.GZip ||| DecompressionMethods.Deflate
+            handler.ClientCertificateOptions <- ClientCertificateOption.Automatic
+            
+            httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/W.X.Y.Z Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")
+            httpClient.BaseAddress <- Uri(baseUrl)
         
+        let saveToFiles data =
+            fileSaverAgent.SaveToFiles data
 
-        if not (linksDictionary.ContainsKey(url)) then
-          linksDictionary.[url] <- parentUrl
-          log "Inside producer"
-          try
-            log ("Link: " + url)
-            use! response = httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead)|>Async.AwaitTask
-            if(response.IsSuccessStatusCode) then
-                log ("Successful")
-                if(url.StartsWith("http") && not (url.Contains(BaseUrl))) then
-                    //save file
-                    saveToFiles (true, parentUrl, url)
-                else
-                    let contentType = response.Content.Headers.ContentType.MediaType
-                    log contentType
-                    if(contentType = "text/html") then
-                        let! source = response.Content.ReadAsStringAsync() |>Async.AwaitTask       
-                        use context = BrowsingContext.New(config)
-                        let parser = context.GetService<IHtmlParser>()
-                        use! doc = parser.ParseDocumentAsync(source)|>Async.AwaitTask
-                        let links = 
-                                 doc.QuerySelectorAll("a")
-                                 |> Seq.filter(fun x -> x.HasAttribute("href"))
-                                 |> Seq.map (fun x -> x.GetAttribute("href"))
-                        log ("Total Links: "+ links.Count().ToString())
-                        for link in links do
-                              let newLink =
-                                            if(link.StartsWith("/")) then
-                                                $"{BaseUrl}{link}"
-                                            else if not (link.StartsWith("http")) then
-                                                $"{BaseUrl}/{link}"
-                                            else link
-                              blockingCollection.Add((url,newLink))
-                        //save file
+        let linksProducer (parentUrl:string, url:string) =
+            async{
+                if not (linksDictionary.ContainsKey(url)) then
 
-                        saveToFiles (true, parentUrl, url)
-                     else //Content type is not html but successful
-                              //save file                 
-                         saveToFiles (true,parentUrl, url)
-            else 
-                  //save file
-                  saveToFiles (false, parentUrl, url)
-          with
-            |_ ->  //save file
-                   saveToFiles (false,parentUrl, url)
-        }
+                  linksDictionary.[url] <- parentUrl
+                  try
+                    log $"Dictionary: {linksDictionary.Count}, BC ({blockingCollection.Count})"
+                    log (url)
 
-let consumer() =
-        async{
-               log "Inside consumer"
-               let taskList = ResizeArray()
-               for (parentUrl, url) in blockingCollection.GetConsumingEnumerable() do
-                    taskList.Add(linksProducer (parentUrl,url))
-                    if(taskList.Count > 10) then
-                        taskList.ToArray()|>Async.Parallel|>Async.RunSynchronously|>ignore
+                    use! response = httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead)|>Async.AwaitTask
+                    if(response.IsSuccessStatusCode) then
+                        if(url.StartsWith("http") && not (url.Contains(baseUrl))) then
+                            //save file
+                            saveToFiles (true, parentUrl, url)
+                        else
+                            let contentType = response.Content.Headers.ContentType.MediaType
+                            if(contentType = "text/html") then
+                                let! source = response.Content.ReadAsStringAsync() |>Async.AwaitTask       
+                                use context = BrowsingContext.New(config)
+                                let parser = context.GetService<IHtmlParser>()
+                                use! doc = parser.ParseDocumentAsync(source)|>Async.AwaitTask
+                                let links = 
+                                         doc.QuerySelectorAll("a")
+                                         |> Seq.filter(fun x -> x.HasAttribute("href"))
+                                         |> Seq.map (fun x -> x.GetAttribute("href"))
+                                         |> Seq.filter(fun x -> (x.Length > 1) && not (x.StartsWith("javascript")))
+                                         |> Seq.toArray
+
+                                if (not (links.Any()) && (blockingCollection.Count = 0)) then
+                                    blockingCollection.CompleteAdding()
+                                else
+                                    for link in links do
+                                          let newLink =
+                                                if(link.StartsWith("/")) then
+                                                    $"{baseUrl}{link}"
+                                                else if not (link.StartsWith("http")) then
+                                                    $"{baseUrl}/{link}"
+                                                else link
+
+                                          if not(linksDictionary.ContainsKey(newLink)) then
+                                              blockingCollection.Add((url, newLink))
+                                    //save file
+                                    saveToFiles (true, parentUrl, url)
+                             else
+                                 //save file                 
+                                 saveToFiles (true,parentUrl, url)
+                    else 
+                          //save file
+                          saveToFiles (false, parentUrl, url)
+                  with
+                    |_ ->  //save file
+                           saveToFiles (false,parentUrl, url)
+                }
+
+        let consumer1() =
+                async{
+                       for (parentUrl, url) in blockingCollection.GetConsumingEnumerable() do
+                           //use! holder = webRequestGate.AsyncAcquire() 
+                           do! linksProducer (parentUrl,url)
+                           //log (url)
+
                     
-            }
+                    }
+        let consumer2() =
+            async{
+                   for (parentUrl, url) in blockingCollection.GetConsumingEnumerable() do
+                       //use! holder = webRequestGate.AsyncAcquire() 
+                       do! linksProducer (parentUrl,url)
+                       //log (url)
 
+                }
+        let consumer3() =
+            async{
+                   for (parentUrl, url) in blockingCollection.GetConsumingEnumerable() do
+                       //use! holder = webRequestGate.AsyncAcquire() 
+                       do! linksProducer (parentUrl,url)
+                       //log (url)
+                }
+        let consumer4() =
+           async{
+               for (parentUrl, url) in blockingCollection.GetConsumingEnumerable() do
+                   //use! holder = webRequestGate.AsyncAcquire() 
+                   do! linksProducer (parentUrl,url)
+                   //log (url)
+               }
+
+        let consumer5() =
+            async{
+                   for (parentUrl, url) in blockingCollection.GetConsumingEnumerable() do
+                       //use! holder = webRequestGate.AsyncAcquire() 
+                       do! linksProducer (parentUrl,url)
+                       //log (url)
+                }
+
+        interface System.IDisposable with 
+            member _.Dispose() = 
+                     blockingCollection.Dispose()
+                     httpClient.Dispose()
+                     handler.Dispose()
+                     (fileSaverAgent :> IDisposable).Dispose()
+
+        member _.Start() =
+            
+            consumer1() |> Async.Start
+            consumer2() |> Async.Start
+            consumer3() |> Async.Start
+            consumer4() |> Async.Start
+            consumer5() |> Async.Start
+            
+            linksProducer ("", url.ToString()) |> Async.StartAsTask
+            
+                     
+                     
 
        
    
