@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework> 
+
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <WarnOn>3390;$(WarnOn)</WarnOn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Library.fs" />
+    <None Include="Script.fsx" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AngleSharp" Version="0.16.1" />
+    <PackageReference Include="AngleSharp.Css" Version="0.16.4" />
+    <PackageReference Include="AngleSharp.Io" Version="0.16.0" />
+    <PackageReference Include="AngleSharp.Js" Version="0.15.0" />
+    <PackageReference Include="Microsoft.Database.Collections.Generic" Version="2.0.3" />
+    <PackageReference Include="Microsoft.Database.ManagedEsent" Version="2.0.3" />
+    <PackageReference Include="Microsoft.Net.Http" Version="2.2.29" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="6.0.4" />
+  </ItemGroup>
+</Project>

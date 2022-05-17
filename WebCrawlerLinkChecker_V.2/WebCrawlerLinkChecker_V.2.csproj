@@ -79,5 +79,11 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WebCrawlerLib\WebCrawlerLib.fsproj">
+      <Project>{63e3afed-7c09-4f1f-95bb-4a78c5a1eced}</Project>
+      <Name>WebCrawlerLib</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
