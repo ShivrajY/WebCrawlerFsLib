@@ -15,6 +15,12 @@ open AngleSharp.Js
 open AngleSharp.Io.Network
 open AngleSharp.Html.Parser
 
+type LogData =
+    {
+      LinksInQueue: int
+      CheckedLinks: int
+      Message:string
+     }
 
 let LIMIT = 100
 
@@ -34,6 +40,7 @@ type RequestGate(n:int) =
 
 type FileMessage =
      | Save of data:(bool*string*string)
+     | Flush
      | Quit
  
 type FileSaverAgent(totalLinksFile:string, goodLinksFile:string, badLinksFile:string) =
@@ -54,6 +61,9 @@ type FileSaverAgent(totalLinksFile:string, goodLinksFile:string, badLinksFile:st
                                         match b with
                                         | true -> do! goodLinksFileSW.WriteLineAsync(line)|>Async.AwaitTask
                                         | false -> do! badLinksFileSW.WriteLineAsync(line)|>Async.AwaitTask
+                                 | Flush -> totalLinksFileSW.Flush()
+                                            goodLinksFileSW.Flush()
+                                            badLinksFileSW.Flush()
                                  return! loop() 
                         }
                     loop()
@@ -71,12 +81,13 @@ type FileSaverAgent(totalLinksFile:string, goodLinksFile:string, badLinksFile:st
             agent.Post(FileMessage.Quit)
    
     member _.SaveToFiles(data: (bool * string * string)) = agent.Post(Save(data))
+    member _.FlushFiles() = agent.Post(Flush)
 
 ServicePointManager.ServerCertificateValidationCallback <- (fun _ _ _ _ -> true)
 ServicePointManager.DefaultConnectionLimit <- LIMIT
 ServicePointManager.SecurityProtocol <- SecurityProtocolType.Tls12 ||| SecurityProtocolType.Tls11 ||| SecurityProtocolType.Tls
 
-type WebCrawler(url:Uri,allLinksFile:string, goodFile:string, badFile:string, cancellationToken:CancellationToken, log:string->unit) =
+type Crawler(url:Uri,allLinksFile:string, goodFile:string, badFile:string, cancellationToken:CancellationToken, log:LogData->unit) =
         let baseUrl = $"{url.Scheme}://{url.Authority}"
 
         let linksDictionary = new ConcurrentDictionary<string,string>()             
@@ -110,13 +121,16 @@ type WebCrawler(url:Uri,allLinksFile:string, goodFile:string, badFile:string, ca
         let linksProducer (parentUrl:string, url:string) =
             async{
                 if not (linksDictionary.ContainsKey(url)) then
-
                   linksDictionary.[url] <- parentUrl
                   try
-                    log $"Dictionary: {linksDictionary.Count}, BC ({blockingCollection.Count})"
-                    log (url)
+                    
+                    if(linksDictionary.Count % 100 = 0 ) then fileSaverAgent.FlushFiles()
 
-                    use! response = httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead)|>Async.AwaitTask
+                    log ({LinksInQueue = (linksDictionary.Count + blockingCollection.Count);
+                          CheckedLinks = linksDictionary.Count ;
+                          Message = url})
+
+                    use! response = httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken)|>Async.AwaitTask
                     if(response.IsSuccessStatusCode) then
                         if(url.StartsWith("http") && not (url.Contains(baseUrl))) then
                             //save file
@@ -137,6 +151,8 @@ type WebCrawler(url:Uri,allLinksFile:string, goodFile:string, badFile:string, ca
 
                                 if (not (links.Any()) && (blockingCollection.Count = 0)) then
                                     blockingCollection.CompleteAdding()
+                                    (fileSaverAgent :> IDisposable).Dispose()
+                                    
                                 else
                                     for link in links do
                                           let newLink =
@@ -157,7 +173,13 @@ type WebCrawler(url:Uri,allLinksFile:string, goodFile:string, badFile:string, ca
                           //save file
                           saveToFiles (false, parentUrl, url)
                   with
-                    |_ ->  //save file
+                    | :?  
+                           OperationCanceledException -> 
+                                                        blockingCollection.CompleteAdding()
+                                                        (fileSaverAgent :> IDisposable).Dispose()
+
+
+                    | _ ->  //save file
                            saveToFiles (false,parentUrl, url)
                 }
 
@@ -167,8 +189,6 @@ type WebCrawler(url:Uri,allLinksFile:string, goodFile:string, badFile:string, ca
                            //use! holder = webRequestGate.AsyncAcquire() 
                            do! linksProducer (parentUrl,url)
                            //log (url)
-
-                    
                     }
         let consumer2() =
             async{
@@ -176,7 +196,6 @@ type WebCrawler(url:Uri,allLinksFile:string, goodFile:string, badFile:string, ca
                        //use! holder = webRequestGate.AsyncAcquire() 
                        do! linksProducer (parentUrl,url)
                        //log (url)
-
                 }
         let consumer3() =
             async{

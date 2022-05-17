@@ -5,9 +5,15 @@ VisualStudioVersion = 17.1.32421.90
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "WebCrawlerFsLib", "WebCrawlerFsLib\WebCrawlerFsLib.fsproj", "{B6026DA8-3B17-45D2-9291-5B9083E09D33}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ConsoleTester", "ConsoleTester\ConsoleTester.fsproj", "{5561AAA6-ED49-40FE-B4B3-08848DBEC75B}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "ConsoleTester", "ConsoleTester\ConsoleTester.fsproj", "{5561AAA6-ED49-40FE-B4B3-08848DBEC75B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebCrawler", "WebCrawler\WebCrawler.csproj", "{048A4CAD-C665-496D-8B15-0B47C89D6B2F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebCrawler", "WebCrawler\WebCrawler.csproj", "{048A4CAD-C665-496D-8B15-0B47C89D6B2F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "V1", "V1", "{FEF3555D-E2FE-4372-956E-D5A74F802CD5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "V2", "V2", "{3F3E5A5B-4F00-4966-8B11-2B0798CAEF21}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebCrawlerLinkChecker_V.2", "WebCrawlerLinkChecker_V.2\WebCrawlerLinkChecker_V.2.csproj", "{41383FB8-B3BF-4FD2-8382-7CA65F045244}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,9 +33,19 @@ Global
 		{048A4CAD-C665-496D-8B15-0B47C89D6B2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{048A4CAD-C665-496D-8B15-0B47C89D6B2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{048A4CAD-C665-496D-8B15-0B47C89D6B2F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{41383FB8-B3BF-4FD2-8382-7CA65F045244}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{41383FB8-B3BF-4FD2-8382-7CA65F045244}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{41383FB8-B3BF-4FD2-8382-7CA65F045244}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{41383FB8-B3BF-4FD2-8382-7CA65F045244}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B6026DA8-3B17-45D2-9291-5B9083E09D33} = {FEF3555D-E2FE-4372-956E-D5A74F802CD5}
+		{5561AAA6-ED49-40FE-B4B3-08848DBEC75B} = {FEF3555D-E2FE-4372-956E-D5A74F802CD5}
+		{048A4CAD-C665-496D-8B15-0B47C89D6B2F} = {FEF3555D-E2FE-4372-956E-D5A74F802CD5}
+		{41383FB8-B3BF-4FD2-8382-7CA65F045244} = {3F3E5A5B-4F00-4966-8B11-2B0798CAEF21}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C7B7FA5F-D500-4935-83F7-0B9CF8D43059}

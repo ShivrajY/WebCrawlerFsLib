@@ -5,10 +5,19 @@
     <TargetFramework>net6.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Web_22320.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="Web_22320.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="UI.for.WinForms.AllControls.Net60" Version="2022.1.118" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WebCrawlerFsLib\WebCrawlerFsLib.fsproj" />
   </ItemGroup>
 
   <ProjectExtensions><VisualStudio><UserProperties ShouldAddDPIScalingManifest="" /></VisualStudio></ProjectExtensions>
