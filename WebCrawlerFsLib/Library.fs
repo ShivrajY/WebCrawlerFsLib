@@ -111,12 +111,10 @@ type Crawler(url:Uri,allLinksFile:string, goodFile:string, badFile:string, cance
             handler.AllowAutoRedirect <- true
             handler.AutomaticDecompression<- DecompressionMethods.GZip ||| DecompressionMethods.Deflate
             handler.ClientCertificateOptions <- ClientCertificateOption.Automatic
-            
             httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/W.X.Y.Z Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")
             httpClient.BaseAddress <- Uri(baseUrl)
         
-        let saveToFiles data =
-            fileSaverAgent.SaveToFiles data
+        let saveToFiles data = fileSaverAgent.SaveToFiles data
 
         let linksProducer (parentUrl:string, url:string) =
             async{
@@ -143,11 +141,19 @@ type Crawler(url:Uri,allLinksFile:string, goodFile:string, badFile:string, cance
                                 let parser = context.GetService<IHtmlParser>()
                                 use! doc = parser.ParseDocumentAsync(source)|>Async.AwaitTask
                                 let links = 
-                                         doc.QuerySelectorAll("a")
-                                         |> Seq.filter(fun x -> x.HasAttribute("href"))
-                                         |> Seq.map (fun x -> x.GetAttribute("href"))
-                                         |> Seq.filter(fun x -> (x.Length > 1) && not (x.StartsWith("javascript")))
-                                         |> Seq.toArray
+                                        doc.QuerySelectorAll("a")
+                                                   |> Seq.filter (fun x -> x.HasAttribute("href"))
+                                                   |> Seq.map (fun x -> x.GetAttribute("href"))
+                                                   |> Seq.filter (fun x -> (x.Length > 1) && not (x.StartsWith("javascript")))
+                                                   |> Seq.map (fun x ->
+                                                       let uri = (new Uri(url)).ToString()
+                                                       let index = uri.LastIndexOf('/')
+                                                       let path = uri.Substring(0, index)
+
+                                                       if (x.StartsWith('/')) then $"{path}{x}"
+                                                       elif (x.StartsWith "http") then x
+                                                       else $"{path}/{x}")
+                                                   |> Seq.toList
 
                                 if (not (links.Any()) && (blockingCollection.Count = 0)) then
                                     blockingCollection.CompleteAdding()
@@ -211,7 +217,6 @@ type Crawler(url:Uri,allLinksFile:string, goodFile:string, badFile:string, cance
                    do! linksProducer (parentUrl,url)
                    //log (url)
                }
-
         let consumer5() =
             async{
                    for (parentUrl, url) in blockingCollection.GetConsumingEnumerable() do
